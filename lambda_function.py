@@ -1,34 +1,23 @@
 import requests
 from bs4 import BeautifulSoup
-import smtplib
-from email.mime.text import MIMEText
-from email.message import EmailMessage
+import boto3
 
 
 
-def generate_email(subject,body):
-    message = EmailMessage()
-    sender = "automation@akranz.com"
-    recipient = "austinkranz@gmail.com"
-    body = MIMEText(body)
+def triggerSNSEmails():
+    client = boto3.client('events')
     
-
-    message['From'] = sender
-    message['To'] = recipient
-    message['Subject'] = subject
-    message.set_content(body)
-    return message
-
-
-
-def send_email(message):
-    mail_server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-    mail_server.login('austinkranz@gmail.com', 'XXXXXXXXXXXXXXX')
-    mail_server.send_message(message)
-    mail_server.quit()
-
-
-
+    #First check if the rule is already enabled
+    responseDict = client.describe_rule(Name='ValveIndexStock_InStockEmails')
+   
+    if responseDict['State'] == 'DISABLED':
+        responseDict = client.enable_rule(Name='ValveIndexStock_InStockEmails')
+        status = responseDict['ResponseMetadata']['HTTPStatusCode']
+        if status != 200:
+            print("Ran into an error enabling EventBridge rule...")
+            exit(1)
+    else:
+        print("EventBridge rule to trigger SNS emails has already been enabled.")
 
 
 def check_valve_index_controller_pair_stock():
@@ -42,20 +31,21 @@ def check_valve_index_controller_pair_stock():
 
     if response.status_code == 200:
         soup = BeautifulSoup(response.content, "html.parser")
-        availability_element = soup.find("div", class_="game_purchase_action_bg")
-        
-        if availability_element and "add to cart" in availability_element.get_text().lower():
+        parentClass = soup.find("div", class_="valveindex_purchase_option sku_knuckles vi_standalone_purchase_option")
+    
+        if "<span>Add to Cart</span>" in str(parentClass):
             res = "ValveIndexStockCheck: Valve Index controllers (pair) are in stock!"
-            message = generate_email(res,"Navigate to {} to purchase!".format(url))
-            send_email(message)
+            triggerSNSEmails()
             return(res)
-        else:
+        elif "<span>Out of Stock</span>" in str(parentClass):
             return("Valve Index controllers (pair) are not in stock")
+        else:
+            print("Error: Could not find stock status from webpage.")       
     else:
-            res = "IndexStockCheck: Failed to retrueve the Steam Store page"
-            message = generate_email(res,"WARNING: IndexStockCheck failed to retrieve the Steam store page: {}".format(url))
-            send_email(message)
-            return(res)
+        print("IndexStockCheck: Failed to retrieve the Steam Store page.")
+        exit(1)
+
+
 
 
 def check_valve_index_controller_right_stock():
@@ -69,20 +59,19 @@ def check_valve_index_controller_right_stock():
 
     if response.status_code == 200:
         soup = BeautifulSoup(response.content, "html.parser")
-        availability_element = soup.find("div", class_="game_purchase_action_bg")
+        parentClass = soup.find("div", class_="valveindex_purchase_option sku_knuckles_replacement_right vi_standalone_purchase_option")
         
-        if availability_element and "add to cart" in availability_element.get_text().lower():
-            res = "ValveIndexStockCheck Index controller (right) is in stock!"
-            message = generate_email(res,"Navigate to {} to purchase!".format(url))
-            send_email(message)
+        if "<span>Add to Cart</span>" in str(parentClass):
+            res = "ValveIndexStockCheck: Valve Index controller (right) is in stock!"
+            triggerSNSEmails()
             return(res)
-        else:
+        elif "<span>Out of Stock</span>" in str(parentClass):
             return("Valve Index controller (right) is not in stock")
+        else:
+            print("Error: Could not find stock status from webpage.")
     else:
-            res = "ValveIndexStockCheck: Failed to retrieve the Steam Store page"
-            message = generate_email(res,"WARNING: IndexStockCheck failed to retrieve the Steam store page: {}".format(url))
-            send_email(message)
-            return(res)
+        print("IndexStockCheck: Failed to retrieve the Steam Store page.")
+        exit(1)
 
 
 
@@ -96,6 +85,6 @@ def lambda_handler(event,context):
     return ("{}, and {}".format(pairCheck,rightCheck))
 
 
-# event = ""
-# context = ""
-# lambda_handler(event,context)
+event = ""
+context = ""
+lambda_handler(event,context)
