@@ -1,6 +1,6 @@
-# Welcome to IndexStockChecker!
+# Welcome to ValveIndexStockChecker!
 
-Hi! IndexStockChecker is a python application that checks the in-stock status of the Valve Index VR Controllers on Steam, and alerts in-stock status via email.
+Hi! ValveIndexStockChecker is a python application that checks the in-stock status of the Valve Index VR Controllers on Steam, and alerts in-stock status via email.
 
 # Background
  I began to pursue this project after a tragic accident in which I broke my right-hand controller while playing Golf 5 eClub - a virtual reality golf simulator. In my virtual reality immersion, I wandered too close to my bedroom dresser, and came into contact on my next tee shot.
@@ -11,7 +11,7 @@ I found that the Valve Index VR controllers are more often out of stock than the
 
 # How its run
 
-IndexStockChecker was built with it's platform in mind, that is AWS.
+ValveIndexStockChecker was built with it's platform in mind, that is AWS.
 - The application is run in AWS Lambda configured for Python 3.9. 
 - The Lambda function is triggered every minute by an AWS EventBridge Scheduler, or as desired.
 
